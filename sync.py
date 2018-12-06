@@ -7,7 +7,7 @@ class SyncData:
     def __init__(self):
         self.mysql_host = "139.159.176.118"
         self.mysql_username = "dcr"
-        self.mysql_password = "acBWtXqmj2cNrHzrWTAciuxLJEreb*4EgK4"
+        self.mysql_password = ""
         self.mysql_DBname = "datacenter"
         self.mysql_port = 3306
 
