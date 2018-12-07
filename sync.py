@@ -1,3 +1,4 @@
+import time
 import decimal
 import pymysql
 from pymongo import MongoClient
@@ -7,7 +8,7 @@ class SyncData:
     def __init__(self):
         self.mysql_host = "139.159.176.118"
         self.mysql_username = "dcr"
-        self.mysql_password = ""
+        self.mysql_password = "xxxxxx"
         self.mysql_DBname = "datacenter"
         self.mysql_port = 3306
 
@@ -78,13 +79,21 @@ class SyncData:
                 num = 10000
                 start = 0
                 while True:
+                    # 坑... 不能使用id作为偏移标准 有的表的id是不连续唯一的 会造成多插数据
+                    # query_sql = """
+                    # select * from {} where id > {} limit {};""".format(table_name, start, num)
+                    # eg. 0, 10000
+                    #     10000, 10000 ...
                     query_sql = """
-                    select * from {} where id > {} limit {};""".format(table_name, start, num)
+                    select * from {} limit {},{};""".format(table_name, start, num)
+
                     cursor.execute(query_sql)
                     res = cursor.fetchall()
                     if not res:
                         break
                     start += num
+
+                    # 生成器部分
                     for column in res:
                         column_dict = self.zip_doc_dict(name_list, column)
                         yield column_dict
@@ -150,8 +159,10 @@ class SyncData:
         '''
 
         # 谨慎起见 trans one by one
-        sql_table_name_list = ['bas_induinfo']  # √ 484
-        sql_table_name_list = ['comcn_balancesheet']  #
+        # sql_table_name_list = ['bas_induinfo']  # √ 484
+        # sql_table_name_list = ['comcn_induinfo']  # √ 5643 1.40min
+        # sql_table_name_list = ['stk_dividendinfo']  # √ 31925 8.22min
+        sql_table_name_list = ['index_quot_day']  # √
 
         for table_name in sql_table_name_list:
             table_name_list = self.generate_sql_table_column_names(conn, self.mysql_DBname,
@@ -172,8 +183,22 @@ class SyncData:
             print("The current table lengtrh is:", sql_table_length)
             assert mongo_collection_length == sql_table_length
 
+    def update_data(self):
+        """
+        考虑两种情况：
+        (1) mysql 每一个 table 中的一行数据为最小变更 可以根据集合进行增删 update
+        :return:
+        """
+        pass
+
 
 if __name__ == "__main__":
     rundemo = SyncData()
-    rundemo.sync_data()
+    print("=================开始同步数据========================")
+    t1 = time.time()
+    rundemo.sync_data()  # 同步数据, 只在有新的数据库表加入的时候同步一次
+    print("=================同步数据结束========================")
+    t2 = time.time()
+    print("本次同步所用时间是：", (t2-t1)/60, "min")
+    rundemo.update_data()  # 更新数据，当数据库表内容有增加或者修改的时候同步一次
 
