@@ -1,2 +1,2 @@
-# sync_mysql2mongodb
-# Sync MySQL data into MongoDB
+# 作用
+####  Sync MySQL data into MongoDB using Python
