@@ -1,20 +1,22 @@
-import time
 import decimal
+import time
 import pymysql
 from pymongo import MongoClient
-
+import config
+import mylogger
 
 class SyncData:
     def __init__(self):
-        self.mysql_host = "139.159.176.118"
-        self.mysql_username = "ruiyang"
-        self.mysql_password = "xxxxxxxxx"
-        self.mysql_DBname = "datacenter"
-        self.mysql_port = 3306
+        self.con = config.Config()
+        self.mysql_host = self.con.get("async", "mysql_host")
+        self.mysql_username = self.con.get("async", "mysql_username")
+        self.mysql_password = self.con.get("async", "mysql_password")
+        self.mysql_DBname = self.con.get("async", "mysql_DBname")
+        self.mysql_port = self.con.get("async", "mysql_port")
 
-        self.mongo_host = "localhost"
-        self.mongo_port = 27017
-        self.mongo_DBname = "datacenter"
+        self.mongo_host = self.con.get("async", "mongo_host")
+        self.mongo_port = self.con.get("async", "mongo_port")
+        self.mongo_DBname = self.con.get("async", "mongo_DBname")
 
     def generate_mysqlconnection(self):
         return pymysql.connect(
@@ -196,10 +198,12 @@ class SyncData:
 
             # 校对两种数据库前后数量一致
             mongo_collection_length = self.generate_mongo_collection_length(mongo_collection)
-            print("The generete mongodb collection length is: ", mongo_collection_length)
+            mylogger.logger.info("The generete mongodb collection length is: ", mongo_collection_length)
             sql_table_length = self.generate_sql_table_length(conn, table_name)[0]
-            print("The current table lengtrh is:", sql_table_length)
-            assert mongo_collection_length == sql_table_length
+            mylogger.logger.info("The current table lengtrh is:", sql_table_length)
+            if mongo_collection_length != sql_table_length:
+                # 数据不一致的时候打印日志 便于查找错误 
+                mylogger.logger.warning(f"Error......{table_name}")
 
     def update_data(self):
         """
